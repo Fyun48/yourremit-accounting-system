@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   User,
-  Bell
+  Bell,
+  FileText
 } from 'lucide-react'
 import { UserProfile } from '@/types'
 
@@ -21,6 +22,7 @@ const menuItems = [
   { name: '儀表板', path: '/dashboard', icon: LayoutDashboard },
   { name: '外匯交易', path: '/dashboard/transactions', icon: ArrowLeftRight },
   { name: '會計分錄', path: '/dashboard/journal', icon: BookOpen },
+  { name: '流水帳', path: '/dashboard/cashbook', icon: FileText },
   { name: '財務報表', path: '/dashboard/reports', icon: PieChart },
   { name: '系統設定', path: '/dashboard/settings', icon: Settings },
 ]
