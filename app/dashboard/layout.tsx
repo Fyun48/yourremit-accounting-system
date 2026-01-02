@@ -14,7 +14,9 @@ import {
   X,
   User,
   Bell,
-  FileText
+  FileText,
+  Book,
+  Calculator
 } from 'lucide-react'
 import { UserProfile } from '@/types'
 
@@ -23,6 +25,8 @@ const menuItems = [
   { name: '外匯交易', path: '/dashboard/transactions', icon: ArrowLeftRight },
   { name: '會計分錄', path: '/dashboard/journal', icon: BookOpen },
   { name: '流水帳', path: '/dashboard/cashbook', icon: FileText },
+  { name: '總分類帳', path: '/dashboard/ledger', icon: Book },
+  { name: '試算表', path: '/dashboard/trial-balance', icon: Calculator },
   { name: '財務報表', path: '/dashboard/reports', icon: PieChart },
   { name: '系統設定', path: '/dashboard/settings', icon: Settings },
 ]

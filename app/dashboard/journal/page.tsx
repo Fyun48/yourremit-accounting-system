@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import supabase from '@/lib/supabase'
-import { Plus, FileText, Check, X, Trash2 } from 'lucide-react'
+import { Plus, FileText, Check, X, Trash2, CheckCircle } from 'lucide-react'
 import { JournalEntry, ChartOfAccount, JournalEntryLine } from '@/types'
 import { format } from 'date-fns'
 
@@ -162,6 +162,50 @@ export default function JournalPage() {
     setFormData({ ...formData, lines: newLines })
   }
 
+  const handlePostEntry = async (entryId: string) => {
+    if (!confirm('確定要過帳此分錄嗎？過帳後將無法修改。')) return
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      const { error } = await supabase
+        .from('journal_entries')
+        .update({
+          status: '已過帳',
+          posted_at: new Date().toISOString(),
+          approved_by: user?.id
+        })
+        .eq('id', entryId)
+
+      if (error) throw error
+
+      loadData()
+      alert('分錄過帳成功！')
+    } catch (error: any) {
+      alert('過帳失敗: ' + error.message)
+    }
+  }
+
+  const handleVoidEntry = async (entryId: string) => {
+    if (!confirm('確定要作廢此分錄嗎？')) return
+
+    try {
+      const { error } = await supabase
+        .from('journal_entries')
+        .update({
+          status: '已作廢'
+        })
+        .eq('id', entryId)
+
+      if (error) throw error
+
+      loadData()
+      alert('分錄已作廢！')
+    } catch (error: any) {
+      alert('作廢失敗: ' + error.message)
+    }
+  }
+
   if (loading) {
     return <div className="p-8 text-center">載入中...</div>
   }
@@ -207,7 +251,28 @@ export default function JournalPage() {
                 </span>
               </div>
 
-              <p className="text-slate-700 mb-4">{entry.description}</p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-slate-700">{entry.description || '無說明'}</p>
+                <div className="flex items-center space-x-2">
+                  {entry.status === '草稿' && (
+                    <button
+                      onClick={() => handlePostEntry(entry.id)}
+                      className="btn btn-primary text-sm flex items-center space-x-1"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>過帳</span>
+                    </button>
+                  )}
+                  {entry.status !== '已作廢' && (
+                    <button
+                      onClick={() => handleVoidEntry(entry.id)}
+                      className="btn btn-danger text-sm"
+                    >
+                      作廢
+                    </button>
+                  )}
+                </div>
+              </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
