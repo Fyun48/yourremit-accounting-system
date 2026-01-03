@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import supabase from '@/lib/supabase'
-import { Plus, FileText, Check, X, Trash2, CheckCircle } from 'lucide-react'
-import { JournalEntry, ChartOfAccount, JournalEntryLine } from '@/types'
+import { Plus, FileText, Check, X, Trash2, CheckCircle, BookOpen, Save } from 'lucide-react'
+import { JournalEntry, ChartOfAccount, JournalEntryLine, JournalEntryTemplate, JournalEntryTemplateLine } from '@/types'
 import { format } from 'date-fns'
 
 interface EntryLine {
@@ -17,12 +17,21 @@ interface EntryLine {
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [accounts, setAccounts] = useState<ChartOfAccount[]>([])
+  const [templates, setTemplates] = useState<JournalEntryTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [formData, setFormData] = useState({
     entry_date: format(new Date(), 'yyyy-MM-dd'),
     description: '',
     lines: [{ account_id: '', description: '', debit_amount: 0, credit_amount: 0, currency: 'TWD' }] as EntryLine[]
+  })
+  const [templateFormData, setTemplateFormData] = useState({
+    name: '',
+    description: '',
+    category: '',
+    lines: [{ account_id: '', description: '', debit_amount: 0, credit_amount: 0, currency: 'TWD', is_variable: false, variable_name: '' }] as any[]
   })
 
   useEffect(() => {
@@ -42,8 +51,15 @@ export default function JournalPage() {
         .eq('is_active', true)
         .order('code')
 
+      const { data: templatesData } = await supabase
+        .from('journal_entry_templates')
+        .select('*, lines:journal_entry_template_lines(*, account:chart_of_accounts(*))')
+        .eq('is_active', true)
+        .order('name')
+
       setEntries(entriesData || [])
       setAccounts(accountsData || [])
+      setTemplates(templatesData || [])
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -206,6 +222,149 @@ export default function JournalPage() {
     }
   }
 
+  const loadTemplateToForm = async (templateId: string) => {
+    try {
+      const template = templates.find(t => t.id === templateId)
+      if (!template || !template.lines) return
+
+      const lines: EntryLine[] = template.lines.map((line: JournalEntryTemplateLine) => ({
+        account_id: line.account_id,
+        description: line.description || '',
+        debit_amount: line.debit_amount,
+        credit_amount: line.credit_amount,
+        currency: line.currency
+      }))
+
+      setFormData({
+        ...formData,
+        description: template.description || template.name,
+        lines
+      })
+    } catch (error: any) {
+      console.error('Error loading template:', error)
+    }
+  }
+
+  const handleSaveAsTemplate = async () => {
+    if (!formData.description || formData.lines.length < 2) {
+      alert('請先填寫分錄說明和至少兩筆明細')
+      return
+    }
+
+    const category = prompt('請輸入樣板分類（例如：房租、水電費、薪資等）：') || ''
+    const name = prompt('請輸入樣板名稱：') || formData.description
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const { data: template, error: templateError } = await supabase
+        .from('journal_entry_templates')
+        .insert([{
+          name,
+          description: formData.description,
+          category,
+          created_by: user?.id
+        }])
+        .select()
+        .single()
+
+      if (templateError) throw templateError
+
+      const templateLines = formData.lines.map((line, index) => ({
+        template_id: template.id,
+        line_number: index + 1,
+        account_id: line.account_id,
+        description: line.description,
+        debit_amount: line.debit_amount,
+        credit_amount: line.credit_amount,
+        currency: line.currency,
+        is_variable: false
+      }))
+
+      const { error: linesError } = await supabase
+        .from('journal_entry_template_lines')
+        .insert(templateLines)
+
+      if (linesError) throw linesError
+
+      alert('樣板儲存成功！')
+      loadData()
+    } catch (error: any) {
+      alert('儲存樣板失敗: ' + error.message)
+    }
+  }
+
+  const handleTemplateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const { data: template, error: templateError } = await supabase
+        .from('journal_entry_templates')
+        .insert([{
+          name: templateFormData.name,
+          description: templateFormData.description,
+          category: templateFormData.category,
+          created_by: user?.id
+        }])
+        .select()
+        .single()
+
+      if (templateError) throw templateError
+
+      const templateLines = templateFormData.lines.map((line, index) => ({
+        template_id: template.id,
+        line_number: index + 1,
+        account_id: line.account_id,
+        description: line.description,
+        debit_amount: parseFloat(String(line.debit_amount)) || 0,
+        credit_amount: parseFloat(String(line.credit_amount)) || 0,
+        currency: line.currency,
+        is_variable: line.is_variable || false,
+        variable_name: line.variable_name || null
+      }))
+
+      const { error: linesError } = await supabase
+        .from('journal_entry_template_lines')
+        .insert(templateLines)
+
+      if (linesError) throw linesError
+
+      alert('樣板新增成功！')
+      setShowTemplateModal(false)
+      resetTemplateForm()
+      loadData()
+    } catch (error: any) {
+      alert('新增樣板失敗: ' + error.message)
+    }
+  }
+
+  const resetTemplateForm = () => {
+    setTemplateFormData({
+      name: '',
+      description: '',
+      category: '',
+      lines: [{ account_id: '', description: '', debit_amount: 0, credit_amount: 0, currency: 'TWD', is_variable: false, variable_name: '' }]
+    })
+  }
+
+  const addTemplateLine = () => {
+    setTemplateFormData({
+      ...templateFormData,
+      lines: [...templateFormData.lines, { account_id: '', description: '', debit_amount: 0, credit_amount: 0, currency: 'TWD', is_variable: false, variable_name: '' }]
+    })
+  }
+
+  const removeTemplateLine = (index: number) => {
+    if (templateFormData.lines.length > 1) {
+      setTemplateFormData({
+        ...templateFormData,
+        lines: templateFormData.lines.filter((_, i) => i !== index)
+      })
+    }
+  }
+
   if (loading) {
     return <div className="p-8 text-center">載入中...</div>
   }
@@ -217,13 +376,22 @@ export default function JournalPage() {
           <h1 className="text-2xl font-bold text-slate-800">會計分錄</h1>
           <p className="text-slate-600 mt-1">管理所有會計分錄與傳票</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="btn btn-primary flex items-center space-x-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>新增分錄</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowTemplateModal(true)}
+            className="btn btn-secondary flex items-center space-x-2"
+          >
+            <BookOpen className="w-5 h-5" />
+            <span>管理樣板</span>
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="btn btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>新增分錄</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -333,6 +501,36 @@ export default function JournalPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 從樣板建立 */}
+              {templates.length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <label className="label mb-2">從樣板建立（可選）</label>
+                  <select
+                    className="input"
+                    value={selectedTemplate}
+                    onChange={(e) => {
+                      const templateId = e.target.value
+                      setSelectedTemplate(templateId)
+                      if (templateId) {
+                        loadTemplateToForm(templateId)
+                      }
+                    }}
+                  >
+                    <option value="">不使用樣板</option>
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} {template.category ? `(${template.category})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedTemplate && (
+                    <p className="text-xs text-blue-700 mt-2">
+                      已載入樣板，您可以修改金額和日期
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label">分錄日期</label>
@@ -467,20 +665,230 @@ export default function JournalPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-between items-center pt-4">
                 <button
                   type="button"
-                  onClick={() => { setShowModal(false); resetForm(); }}
-                  className="btn btn-secondary"
+                  onClick={handleSaveAsTemplate}
+                  className="btn btn-secondary flex items-center space-x-2"
                 >
-                  取消
+                  <Save className="w-4 h-4" />
+                  <span>儲存為樣板</span>
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  <Check className="w-4 h-4 mr-2" />
-                  確認新增
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => { setShowModal(false); resetForm(); setSelectedTemplate(''); }}
+                    className="btn btn-secondary"
+                  >
+                    取消
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    <Check className="w-4 h-4 mr-2" />
+                    確認新增
+                  </button>
+                </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 樣板管理 Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-fadeIn">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-800">常用分錄樣板管理</h2>
+              <button onClick={() => { setShowTemplateModal(false); resetTemplateForm(); }} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* 樣板列表 */}
+              <div>
+                <h3 className="font-semibold text-slate-800 mb-3">現有樣板</h3>
+                <div className="space-y-2">
+                  {templates.map((template) => (
+                    <div key={template.id} className="card p-4 flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-slate-800">{template.name}</h4>
+                        {template.category && (
+                          <span className="text-xs text-slate-500">{template.category}</span>
+                        )}
+                        {template.description && (
+                          <p className="text-sm text-slate-600 mt-1">{template.description}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedTemplate(template.id)
+                          loadTemplateToForm(template.id)
+                          setShowTemplateModal(false)
+                          setShowModal(true)
+                        }}
+                        className="btn btn-primary text-sm"
+                      >
+                        使用此樣板
+                      </button>
+                    </div>
+                  ))}
+                  {templates.length === 0 && (
+                    <p className="text-slate-500 text-center py-4">尚無樣板</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 新增樣板表單 */}
+              <div className="border-t pt-6">
+                <h3 className="font-semibold text-slate-800 mb-3">新增樣板</h3>
+                <form onSubmit={handleTemplateSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">樣板名稱 *</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={templateFormData.name}
+                        onChange={(e) => setTemplateFormData({ ...templateFormData, name: e.target.value })}
+                        placeholder="例如：每月房租"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">分類</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={templateFormData.category}
+                        onChange={(e) => setTemplateFormData({ ...templateFormData, category: e.target.value })}
+                        placeholder="例如：房租、水電費"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label">說明</label>
+                    <textarea
+                      className="input"
+                      rows={2}
+                      value={templateFormData.description}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, description: e.target.value })}
+                      placeholder="樣板說明..."
+                    ></textarea>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="label mb-0">樣板明細</label>
+                      <button
+                        type="button"
+                        onClick={addTemplateLine}
+                        className="btn btn-secondary text-sm flex items-center space-x-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>新增明細</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {templateFormData.lines.map((line, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 bg-slate-50 rounded-lg">
+                          <div className="col-span-4">
+                            <label className="label text-xs mb-1">會計科目 *</label>
+                            <select
+                              className="input text-sm"
+                              value={line.account_id}
+                              onChange={(e) => {
+                                const newLines = [...templateFormData.lines]
+                                newLines[index].account_id = e.target.value
+                                setTemplateFormData({ ...templateFormData, lines: newLines })
+                              }}
+                              required
+                            >
+                              <option value="">請選擇科目</option>
+                              {accounts.map((account) => (
+                                <option key={account.id} value={account.id}>
+                                  {account.code} - {account.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="col-span-2">
+                            <label className="label text-xs mb-1">說明</label>
+                            <input
+                              type="text"
+                              className="input text-sm"
+                              value={line.description}
+                              onChange={(e) => {
+                                const newLines = [...templateFormData.lines]
+                                newLines[index].description = e.target.value
+                                setTemplateFormData({ ...templateFormData, lines: newLines })
+                              }}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="label text-xs mb-1">借方</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              className="input text-sm font-mono"
+                              value={line.debit_amount || ''}
+                              onChange={(e) => {
+                                const newLines = [...templateFormData.lines]
+                                newLines[index].debit_amount = parseFloat(e.target.value) || 0
+                                if (newLines[index].debit_amount > 0) newLines[index].credit_amount = 0
+                                setTemplateFormData({ ...templateFormData, lines: newLines })
+                              }}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="label text-xs mb-1">貸方</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              className="input text-sm font-mono"
+                              value={line.credit_amount || ''}
+                              onChange={(e) => {
+                                const newLines = [...templateFormData.lines]
+                                newLines[index].credit_amount = parseFloat(e.target.value) || 0
+                                if (newLines[index].credit_amount > 0) newLines[index].debit_amount = 0
+                                setTemplateFormData({ ...templateFormData, lines: newLines })
+                              }}
+                            />
+                          </div>
+                          <div className="col-span-2 flex items-center space-x-2">
+                            {templateFormData.lines.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeTemplateLine(index)}
+                                className="btn btn-danger p-2"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => { setShowTemplateModal(false); resetTemplateForm(); }}
+                      className="btn btn-secondary"
+                    >
+                      取消
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                      <Check className="w-4 h-4 mr-2" />
+                      新增樣板
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       )}

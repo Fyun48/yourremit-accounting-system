@@ -16,7 +16,14 @@ import {
   Bell,
   FileText,
   Book,
-  Calculator
+  Calculator,
+  Wallet,
+  Users,
+  Building2,
+  Receipt,
+  Clock,
+  TrendingUp,
+  Calendar
 } from 'lucide-react'
 import { UserProfile } from '@/types'
 
@@ -28,6 +35,11 @@ const menuItems = [
   { name: '總分類帳', path: '/dashboard/ledger', icon: Book },
   { name: '試算表', path: '/dashboard/trial-balance', icon: Calculator },
   { name: '財務報表', path: '/dashboard/reports', icon: PieChart },
+  { name: '信託專戶', path: '/dashboard/trust-accounts', icon: Wallet },
+  { name: '匯款交易', path: '/dashboard/remittances', icon: ArrowLeftRight },
+  { name: '應收帳款', path: '/dashboard/receivables', icon: Receipt },
+  { name: '應付帳款', path: '/dashboard/payables', icon: Building2 },
+  { name: '日結作業', path: '/dashboard/daily-closing', icon: Calendar },
   { name: '系統設定', path: '/dashboard/settings', icon: Settings },
 ]
 

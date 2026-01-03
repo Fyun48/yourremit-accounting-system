@@ -32,12 +32,16 @@ npm install
 
 ### 步驟 3: 設定環境變量（1 分鐘）
 
-創建 \`.env.local\` 檔案：
+創建 \`.env.local\` 檔案（參考 \`.env.example\`）：
 
 \`\`\`env
-NEXT_PUBLIC_SUPABASE_URL=https://ooheiofjailthttunjdk.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vaGVpb2ZqYWlsdGh0dHVuamRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxNTM3NTUsImV4cCI6MjA4MjcyOTc1NX0.xEtaCI5-DKtFg-3gvWalf4m2h4WKcx7pZJTmtwiMAwE
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_APP_NAME=外匯會計系統
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 \`\`\`
+
+**注意**：請在 Supabase Dashboard 中取得實際的 URL 和 Key。
 
 ### 步驟 4: 啟動開發伺服器（1 分鐘）
 
