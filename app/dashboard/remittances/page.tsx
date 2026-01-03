@@ -573,7 +573,9 @@ export default function RemittancesPage() {
                           {tx.status}
                         </span>
                         {tx.journal_entry_id && (
-                          <CheckCircle className="w-4 h-4 text-green-500" title="已生成會計分錄" />
+                          <span title="已生成會計分錄">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          </span>
                         )}
                       </div>
                     </td>
