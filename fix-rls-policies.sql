@@ -4,9 +4,13 @@
 
 -- 刪除現有的可能衝突的政策
 DROP POLICY IF EXISTS "Users can view own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON user_profiles;
 DROP POLICY IF EXISTS "Authenticated users can view all profiles for login" ON user_profiles;
+DROP POLICY IF EXISTS "Allow login name lookup for authentication" ON user_profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON user_profiles;
 
 -- 創建新的政策：允許未認證用戶根據 login_name 查詢（用於登入）
+-- 這是關鍵：允許 anon（未認證）用戶查詢，這樣登入功能才能工作
 CREATE POLICY "Allow login name lookup for authentication" ON user_profiles
   FOR SELECT
   TO anon, authenticated
