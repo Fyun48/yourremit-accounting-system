@@ -328,7 +328,7 @@ export default function ApprovalsPage() {
                           onClick={() => handleApprove(approval.id)}
                           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2"
                         >
-                          <CheckCircle className="w-4 h-4" />
+                          <CheckCircle2 className="w-4 h-4" />
                           <span>核准</span>
                         </button>
                         <RejectApprovalButton
