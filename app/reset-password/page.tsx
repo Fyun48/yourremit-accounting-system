@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import supabase from '@/lib/supabase'
 import { Lock, CheckCircle, XCircle } from 'lucide-react'
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
@@ -163,5 +163,24 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="w-full max-w-md">
+          <div className="card">
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-slate-600">載入中...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   )
 }
