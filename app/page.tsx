@@ -56,21 +56,28 @@ export default function LoginPage() {
 
     try {
       // 先根據登入名稱查找用戶的email
+      // 注意：這裡不使用 .eq('is_active', true) 因為我們需要檢查帳號狀態並給出明確錯誤
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
-        .select('email, is_active, login_name')
-        .eq('login_name', loginName)
-        .single()
+        .select('email, is_active, login_name, id')
+        .eq('login_name', loginName.trim().toLowerCase())
+        .maybeSingle()
+
+      // 調試信息（開發環境）
+      if (process.env.NODE_ENV === 'development') {
+        console.log('查詢結果:', { profileData, profileError, loginName: loginName.trim().toLowerCase() })
+      }
 
       if (profileError) {
-        if (profileError.code === 'PGRST116') {
+        console.error('查詢錯誤詳情:', profileError)
+        if (profileError.code === 'PGRST116' || profileError.code === '42P01') {
           throw new Error('找不到該登入名稱的帳號，請確認登入名稱是否正確')
         }
-        throw new Error(`查詢錯誤：${profileError.message}`)
+        throw new Error(`查詢錯誤：${profileError.message || profileError.code}`)
       }
 
       if (!profileData) {
-        throw new Error('找不到該登入名稱的帳號')
+        throw new Error('找不到該登入名稱的帳號，請確認登入名稱是否正確')
       }
 
       if (!profileData.is_active) {
