@@ -7,19 +7,69 @@ import { LogIn, TrendingUp, Shield, BarChart3 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [loginName, setLoginName] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState('')
+
+  // 驗證登入名稱格式（小寫字母+6位數字）
+  const validateLoginName = (name: string): boolean => {
+    const pattern = /^[a-z][0-9]{6}$/
+    return pattern.test(name)
+  }
+
+  // 驗證密碼強度
+  const validatePassword = (pwd: string): { valid: boolean; message: string } => {
+    if (pwd.length < 8) {
+      return { valid: false, message: '密碼至少需要8位數' }
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      return { valid: false, message: '密碼必須包含至少1個大寫字母' }
+    }
+    if (!/[a-z]/.test(pwd)) {
+      return { valid: false, message: '密碼必須包含至少1個小寫字母' }
+    }
+    if (!/[0-9]/.test(pwd)) {
+      return { valid: false, message: '密碼必須包含至少1個數字' }
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) {
+      return { valid: false, message: '密碼必須包含至少1個符號' }
+    }
+    return { valid: true, message: '' }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
+    // 驗證登入名稱格式
+    if (!validateLoginName(loginName)) {
+      setError('登入名稱格式錯誤，應為小寫字母+6位數字（例如：a123456）')
+      setLoading(false)
+      return
+    }
+
     try {
+      // 先根據登入名稱查找用戶的email
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('email')
+        .eq('login_name', loginName)
+        .eq('is_active', true)
+        .single()
+
+      if (profileError || !profileData) {
+        throw new Error('找不到該登入名稱的帳號')
+      }
+
+      // 使用email登入
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: profileData.email || '',
         password,
       })
 
@@ -41,49 +91,42 @@ export default function LoginPage() {
     }
   }
 
-  const handleSignUp = async () => {
-    if (!email || !password) {
-      setError('請填寫電子郵件和密碼')
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotPasswordLoading(true)
+    setForgotPasswordMessage('')
+
+    if (!forgotPasswordEmail) {
+      setForgotPasswordMessage('請輸入電子郵件')
+      setForgotPasswordLoading(false)
       return
     }
 
-    setLoading(true)
-    setError('')
-
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: email.split('@')[0],
-          }
-        }
+      // 先查找該email對應的用戶
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id, email')
+        .eq('email', forgotPasswordEmail)
+        .eq('is_active', true)
+        .single()
+
+      if (profileError || !profileData) {
+        throw new Error('找不到該電子郵件的帳號')
+      }
+
+      // 發送密碼重置郵件
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
       })
 
-      if (error) throw error
+      if (resetError) throw resetError
 
-      if (data.user) {
-        // 創建用戶資料
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert([
-            {
-              id: data.user.id,
-              email: email,
-              full_name: email.split('@')[0],
-              is_active: true,
-            }
-          ])
-
-        if (profileError) throw profileError
-
-        alert('註冊成功！請登入')
-      }
+      setForgotPasswordMessage('密碼重置郵件已發送到您的信箱，請查收並按照指示重置密碼。')
     } catch (error: any) {
-      setError(error.message || '註冊失敗')
+      setForgotPasswordMessage(error.message || '發送失敗，請重試')
     } finally {
-      setLoading(false)
+      setForgotPasswordLoading(false)
     }
   }
 
@@ -163,15 +206,17 @@ export default function LoginPage() {
                 )}
 
                 <div>
-                  <label className="label">電子郵件</label>
+                  <label className="label">登入名稱</label>
                   <input
-                    type="email"
+                    type="text"
                     className="input"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="a123456（小寫字母+6位數字）"
+                    value={loginName}
+                    onChange={(e) => setLoginName(e.target.value.toLowerCase())}
+                    pattern="[a-z][0-9]{6}"
                     required
                   />
+                  <p className="text-xs text-slate-500 mt-1">格式：小寫字母 + 6位數字</p>
                 </div>
 
                 <div>
@@ -184,6 +229,9 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                  <p className="text-xs text-slate-500 mt-1">
+                    至少8位數，包含1個大寫、1個小寫、1個數字、1個符號
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
@@ -191,9 +239,13 @@ export default function LoginPage() {
                     <input type="checkbox" className="rounded border-slate-300" />
                     <span className="text-slate-600">記住我</span>
                   </label>
-                  <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-blue-600 hover:text-blue-700 font-medium"
+                  >
                     忘記密碼？
-                  </a>
+                  </button>
                 </div>
 
                 <button
@@ -214,23 +266,6 @@ export default function LoginPage() {
                   )}
                 </button>
 
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-200"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-slate-500">或</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleSignUp}
-                  className="btn btn-secondary w-full py-3"
-                  disabled={loading}
-                >
-                  註冊新帳戶
-                </button>
               </form>
             </div>
 
@@ -240,6 +275,64 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* 忘記密碼模態框 */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">忘記密碼</h2>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  電子郵件
+                </label>
+                <input
+                  type="email"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="your@email.com"
+                  required
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  請輸入您申請帳號時使用的電子郵件地址
+                </p>
+              </div>
+
+              {forgotPasswordMessage && (
+                <div className={`p-3 rounded-lg text-sm ${
+                  forgotPasswordMessage.includes('已發送') 
+                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {forgotPasswordMessage}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false)
+                    setForgotPasswordEmail('')
+                    setForgotPasswordMessage('')
+                  }}
+                  className="px-4 py-2 text-slate-600 hover:text-slate-800"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={forgotPasswordLoading}
+                >
+                  {forgotPasswordLoading ? '發送中...' : '發送重置郵件'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -23,7 +23,14 @@ import {
   Receipt,
   Clock,
   TrendingUp,
-  Calendar
+  Calendar,
+  Fingerprint,
+  CalendarDays,
+  CheckCircle2,
+  DollarSign,
+  CreditCard,
+  Shield,
+  FileCheck
 } from 'lucide-react'
 import { UserProfile } from '@/types'
 
@@ -40,6 +47,17 @@ const menuItems = [
   { name: '應收帳款', path: '/dashboard/receivables', icon: Receipt },
   { name: '應付帳款', path: '/dashboard/payables', icon: Building2 },
   { name: '日結作業', path: '/dashboard/daily-closing', icon: Calendar },
+  { name: '權限管理', path: '/dashboard/permissions', icon: Shield },
+  { name: '公司管理', path: '/dashboard/companies', icon: Building2 },
+  { name: '員工管理', path: '/dashboard/employees', icon: Users },
+  { name: '打卡管理', path: '/dashboard/attendance', icon: Fingerprint },
+  { name: '遲到扣款設定', path: '/dashboard/late-deduction', icon: Clock },
+  { name: '請假管理', path: '/dashboard/leave', icon: CalendarDays },
+  { name: '審核流程', path: '/dashboard/approvals', icon: CheckCircle2 },
+  { name: '支出憑單', path: '/dashboard/expense-vouchers', icon: FileCheck },
+  { name: '出缺勤報表', path: '/dashboard/attendance-reports', icon: TrendingUp },
+  { name: '薪資管理', path: '/dashboard/payroll', icon: DollarSign },
+  { name: '薪資轉帳', path: '/dashboard/salary-transfers', icon: CreditCard },
   { name: '系統設定', path: '/dashboard/settings', icon: Settings },
 ]
 
