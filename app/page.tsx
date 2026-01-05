@@ -58,22 +58,41 @@ export default function LoginPage() {
       // 先根據登入名稱查找用戶的email
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
-        .select('email')
+        .select('email, is_active, login_name')
         .eq('login_name', loginName)
-        .eq('is_active', true)
         .single()
 
-      if (profileError || !profileData) {
+      if (profileError) {
+        if (profileError.code === 'PGRST116') {
+          throw new Error('找不到該登入名稱的帳號，請確認登入名稱是否正確')
+        }
+        throw new Error(`查詢錯誤：${profileError.message}`)
+      }
+
+      if (!profileData) {
         throw new Error('找不到該登入名稱的帳號')
+      }
+
+      if (!profileData.is_active) {
+        throw new Error('此帳號已被停用，請聯繫管理員')
+      }
+
+      if (!profileData.email) {
+        throw new Error('此帳號未設定電子郵件，請聯繫管理員')
       }
 
       // 使用email登入
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: profileData.email || '',
+        email: profileData.email,
         password,
       })
 
-      if (error) throw error
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('密碼錯誤，請檢查密碼是否正確')
+        }
+        throw error
+      }
 
       if (data.user) {
         // 更新最後登入時間
