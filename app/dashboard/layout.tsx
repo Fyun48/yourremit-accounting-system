@@ -33,34 +33,38 @@ import {
   Shield,
   FileCheck
 } from 'lucide-react'
-import { UserProfile } from '@/types'
+import { UserFeaturePermission, UserProfile } from '@/types'
 
+// 每個選單項目對應一個 feature_code，用來和權限系統串接
+// 若 feature_code 為 null，表示所有登入用戶皆可見
 const menuItems = [
-  { name: '儀表板', path: '/dashboard', icon: LayoutDashboard },
-  { name: '外匯交易', path: '/dashboard/transactions', icon: ArrowLeftRight },
-  { name: '會計分錄', path: '/dashboard/journal', icon: BookOpen },
-  { name: '流水帳', path: '/dashboard/cashbook', icon: FileText },
-  { name: '總分類帳', path: '/dashboard/ledger', icon: Book },
-  { name: '試算表', path: '/dashboard/trial-balance', icon: Calculator },
-  { name: '財務報表', path: '/dashboard/reports', icon: PieChart },
-  { name: '信託專戶', path: '/dashboard/trust-accounts', icon: Wallet },
-  { name: '匯款交易', path: '/dashboard/remittances', icon: ArrowLeftRight },
-  { name: '應收帳款', path: '/dashboard/receivables', icon: Receipt },
-  { name: '應付帳款', path: '/dashboard/payables', icon: Building2 },
-  { name: '日結作業', path: '/dashboard/daily-closing', icon: Calendar },
-  { name: '權限管理', path: '/dashboard/permissions', icon: Shield },
-  { name: '公司管理', path: '/dashboard/companies', icon: Building2 },
-  { name: '員工管理', path: '/dashboard/employees', icon: Users },
-  { name: '打卡管理', path: '/dashboard/attendance', icon: Fingerprint },
-  { name: '遲到扣款設定', path: '/dashboard/late-deduction', icon: Clock },
-  { name: '請假管理', path: '/dashboard/leave', icon: CalendarDays },
-  { name: '審核流程', path: '/dashboard/approvals', icon: CheckCircle2 },
-  { name: '支出憑單', path: '/dashboard/expense-vouchers', icon: FileCheck },
-  { name: '出缺勤報表', path: '/dashboard/attendance-reports', icon: TrendingUp },
-  { name: '薪資管理', path: '/dashboard/payroll', icon: DollarSign },
-  { name: '薪資轉帳', path: '/dashboard/salary-transfers', icon: CreditCard },
-  { name: '操作記錄', path: '/dashboard/audit-logs', icon: FileText },
-  { name: '系統設定', path: '/dashboard/settings', icon: Settings },
+  { name: '儀表板', path: '/dashboard', icon: LayoutDashboard, featureCode: null },
+  { name: '外匯交易', path: '/dashboard/transactions', icon: ArrowLeftRight, featureCode: null },
+  { name: '會計分錄', path: '/dashboard/journal', icon: BookOpen, featureCode: null },
+  { name: '流水帳', path: '/dashboard/cashbook', icon: FileText, featureCode: null },
+  { name: '總分類帳', path: '/dashboard/ledger', icon: Book, featureCode: null },
+  { name: '試算表', path: '/dashboard/trial-balance', icon: Calculator, featureCode: null },
+  { name: '財務報表', path: '/dashboard/reports', icon: PieChart, featureCode: null },
+  { name: '信託專戶', path: '/dashboard/trust-accounts', icon: Wallet, featureCode: null },
+  { name: '匯款交易', path: '/dashboard/remittances', icon: ArrowLeftRight, featureCode: null },
+  { name: '應收帳款', path: '/dashboard/receivables', icon: Receipt, featureCode: null },
+  { name: '應付帳款', path: '/dashboard/payables', icon: Building2, featureCode: null },
+  { name: '日結作業', path: '/dashboard/daily-closing', icon: Calendar, featureCode: null },
+
+  // HRM / 權限相關功能，綁定 feature_permissions
+  { name: '權限管理', path: '/dashboard/permissions', icon: Shield, featureCode: 'permission_manage' },
+  { name: '公司管理', path: '/dashboard/companies', icon: Building2, featureCode: 'company_manage' },
+  { name: '員工管理', path: '/dashboard/employees', icon: Users, featureCode: 'employee_manage' },
+  { name: '打卡管理', path: '/dashboard/attendance', icon: Fingerprint, featureCode: 'hrm_attendance_admin' },
+  { name: '遲到扣款設定', path: '/dashboard/late-deduction', icon: Clock, featureCode: 'hrm_attendance_admin' },
+  { name: '請假管理', path: '/dashboard/leave', icon: CalendarDays, featureCode: 'hrm_leave_admin' },
+  { name: '審核流程', path: '/dashboard/approvals', icon: CheckCircle2, featureCode: 'hrm_leave_admin' },
+  { name: '支出憑單', path: '/dashboard/expense-vouchers', icon: FileCheck, featureCode: 'expense_voucher' },
+  { name: '出缺勤報表', path: '/dashboard/attendance-reports', icon: TrendingUp, featureCode: 'hrm_attendance_admin' },
+  { name: '薪資管理', path: '/dashboard/payroll', icon: DollarSign, featureCode: 'hrm_payroll_admin' },
+  { name: '薪資轉帳', path: '/dashboard/salary-transfers', icon: CreditCard, featureCode: 'hrm_salary_transfer' },
+  { name: '操作記錄', path: '/dashboard/audit-logs', icon: FileText, featureCode: 'audit_log_view' },
+  { name: '系統設定', path: '/dashboard/settings', icon: Settings, featureCode: 'system_settings' },
 ]
 
 export default function DashboardLayout({
@@ -74,6 +78,7 @@ export default function DashboardLayout({
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [featureCodes, setFeatureCodes] = useState<string[]>([])
 
   useEffect(() => {
     checkUser()
@@ -100,6 +105,19 @@ export default function DashboardLayout({
       if (profileData) {
         setProfile(profileData)
       }
+
+      // 讀取此用戶的特殊功能權限（user_feature_permissions）
+      const { data: permissionsData } = await supabase
+        .from('user_feature_permissions')
+        .select('*, feature:feature_permissions(*)')
+
+      if (permissionsData) {
+        const codes = (permissionsData as UserFeaturePermission[])
+          .filter(p => (p as any).feature?.feature_code)
+          .map(p => (p as any).feature.feature_code as string)
+
+        setFeatureCodes(codes)
+      }
     } catch (error) {
       console.error('Error checking user:', error)
       router.push('/')
@@ -123,6 +141,14 @@ export default function DashboardLayout({
       </div>
     )
   }
+
+  // 依權限過濾側邊選單
+  const visibleMenuItems = menuItems.filter(item => {
+    // 沒有綁定 featureCode 的項目：所有登入用戶都可見
+    if (!item.featureCode) return true
+    // 有綁定 featureCode 的項目：只有有該功能權限的用戶可以看到
+    return featureCodes.includes(item.featureCode)
+  })
 
   return (
     <div className="min-h-screen">
@@ -152,9 +178,9 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          {/* 導航選單 */}
+          {/* 導航選單（依權限過濾後的結果） */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {menuItems.map((item) => {
+            {visibleMenuItems.map((item) => {
               const isActive = pathname === item.path
               return (
                 <button
