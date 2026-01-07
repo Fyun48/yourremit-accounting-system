@@ -68,6 +68,7 @@ git push -u origin main
 |-----|-------|
 | NEXT_PUBLIC_SUPABASE_URL | https://ooheiofjailthttunjdk.supabase.co |
 | NEXT_PUBLIC_SUPABASE_ANON_KEY | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... |
+| SUPABASE_SERVICE_ROLE_KEY | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (用於後端 API，創建員工等功能) |
 | NEXT_PUBLIC_APP_NAME | 外匯會計系統 |
 | NEXT_PUBLIC_APP_URL | https://your-site.netlify.app |
 
@@ -118,6 +119,7 @@ netlify init
 \`\`\`bash
 netlify env:set NEXT_PUBLIC_SUPABASE_URL "https://ooheiofjailthttunjdk.supabase.co"
 netlify env:set NEXT_PUBLIC_SUPABASE_ANON_KEY "your-anon-key"
+netlify env:set SUPABASE_SERVICE_ROLE_KEY "your-service-role-key"
 netlify env:set NEXT_PUBLIC_APP_NAME "外匯會計系統"
 \`\`\`
 

@@ -790,6 +790,7 @@ export interface Company {
   code: string
   name: string
   name_en?: string
+  numeric_code?: string // 公司數字代號（2位數字，例如：01, 02）
   tax_id?: string
   registration_number?: string
   company_type?: string
@@ -802,6 +803,50 @@ export interface Company {
   created_by?: string
   created_at: string
   updated_at: string
+}
+
+// 部門管理
+export interface Department {
+  id: string
+  company_id: string
+  code: string
+  name: string
+  name_en?: string
+  parent_department_id?: string
+  manager_id?: string
+  description?: string
+  level: number
+  display_order: number
+  is_active: boolean
+  created_by?: string
+  created_at: string
+  updated_at: string
+  parent_department?: Department
+  manager?: ExtendedUserProfile
+  company?: Company
+}
+
+// 組織圖表職位
+export interface OrganizationPosition {
+  id: string
+  company_id: string
+  department_id?: string
+  position_code: string
+  position_name: string
+  position_name_en?: string
+  parent_position_id?: string
+  employee_id?: string
+  job_description?: string
+  level: number
+  display_order: number
+  is_active: boolean
+  created_by?: string
+  created_at: string
+  updated_at: string
+  parent_position?: OrganizationPosition
+  employee?: ExtendedUserProfile
+  department?: Department
+  company?: Company
 }
 
 // 擴展 UserProfile
@@ -820,8 +865,30 @@ export interface ExtendedUserProfile extends UserProfile {
   account_holder?: string
   hire_date?: string
   resignation_date?: string
+  is_resigned?: boolean
+  department_id?: string
+  position_id?: string
   requires_attendance?: boolean
   two_factor_enabled?: boolean
   two_factor_secret?: string
   company?: Company
+  department?: Department
+  position?: OrganizationPosition
+}
+
+// 操作記錄
+export interface AuditLog {
+  id: string
+  user_id: string
+  user_name?: string
+  action_type: 'create' | 'update' | 'delete'
+  module: string
+  record_id?: string
+  record_name?: string
+  old_data?: any
+  new_data?: any
+  description?: string
+  ip_address?: string
+  user_agent?: string
+  created_at: string
 }

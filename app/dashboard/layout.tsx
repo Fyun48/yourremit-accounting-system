@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import Image from 'next/image'
 import supabase from '@/lib/supabase'
 import { 
   LayoutDashboard, 
@@ -58,6 +59,7 @@ const menuItems = [
   { name: '出缺勤報表', path: '/dashboard/attendance-reports', icon: TrendingUp },
   { name: '薪資管理', path: '/dashboard/payroll', icon: DollarSign },
   { name: '薪資轉帳', path: '/dashboard/salary-transfers', icon: CreditCard },
+  { name: '操作記錄', path: '/dashboard/audit-logs', icon: FileText },
   { name: '系統設定', path: '/dashboard/settings', icon: Settings },
 ]
 
@@ -134,8 +136,14 @@ export default function DashboardLayout({
           {/* Logo */}
           <div className="p-6 border-b border-slate-200/50">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-                FX
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
+                <Image 
+                  src="/LOGO_ICON.png" 
+                  alt="Logo" 
+                  width={40} 
+                  height={40} 
+                  className="object-contain"
+                />
               </div>
               <div>
                 <h1 className="font-bold text-slate-800 font-display">外匯會計</h1>
@@ -145,7 +153,7 @@ export default function DashboardLayout({
           </div>
 
           {/* 導航選單 */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {menuItems.map((item) => {
               const isActive = pathname === item.path
               return (

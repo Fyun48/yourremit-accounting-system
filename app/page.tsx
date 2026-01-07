@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import supabase from '@/lib/supabase'
-import { LogIn, TrendingUp, Shield, BarChart3 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,10 +16,11 @@ export default function LoginPage() {
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState('')
 
-  // 驗證登入名稱格式（小寫字母+6位數字）
+  // 驗證登入名稱格式（8位：部門層級代碼3位 + 公司代號2位 + 員工編號3位）
   const validateLoginName = (name: string): boolean => {
-    const pattern = /^[a-z][0-9]{6}$/
-    return pattern.test(name)
+    // 新格式：8位，部門層級代碼(3位英文字母) + 公司代號(2位數字) + 員工編號(3位數字)
+    const pattern = /^[A-Z]{3}[0-9]{2}[0-9]{3}$/
+    return pattern.test(name.toUpperCase()) && name.length === 8
   }
 
   // 驗證密碼強度
@@ -49,7 +50,7 @@ export default function LoginPage() {
 
     // 驗證登入名稱格式
     if (!validateLoginName(loginName)) {
-      setError('登入名稱格式錯誤，應為小寫字母+6位數字（例如：a123456）')
+      setError('登入名稱格式錯誤，應為8位：3位部門代碼 + 2位公司代號 + 3位員工編號（例如：UUI01001）')
       setLoading(false)
       return
     }
@@ -60,7 +61,7 @@ export default function LoginPage() {
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
         .select('email, is_active, login_name, id')
-        .eq('login_name', loginName.trim().toLowerCase())
+        .eq('login_name', loginName.trim().toUpperCase())
         .maybeSingle()
 
       // 調試信息（開發環境）
@@ -108,7 +109,18 @@ export default function LoginPage() {
           .update({ last_login: new Date().toISOString() })
           .eq('id', data.user.id)
 
-        router.push('/dashboard')
+        // 檢查是否需要強制修改密碼
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('must_change_password')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profile?.must_change_password) {
+          router.push('/change-password')
+        } else {
+          router.push('/dashboard')
+        }
       }
     } catch (error: any) {
       setError(error.message || '登入失敗，請檢查您的帳號密碼')
@@ -165,63 +177,21 @@ export default function LoginPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-400/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 relative z-10">
-        {/* 左側 - 品牌資訊 */}
-        <div className="hidden md:flex flex-col justify-center space-y-8 animate-fadeIn">
-          <div>
-            <h1 className="text-5xl font-bold text-slate-800 mb-4 font-display">
-              外匯會計系統
-            </h1>
-            <p className="text-xl text-slate-600">
-              專業的匯兌交易管理與財務記帳平台
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            {[
-              {
-                icon: TrendingUp,
-                title: '即時匯率追蹤',
-                desc: '自動更新多幣別匯率，確保交易準確性'
-              },
-              {
-                icon: Shield,
-                title: '安全權限管理',
-                desc: '多層級角色權限，保護敏感財務資料'
-              },
-              {
-                icon: BarChart3,
-                title: '智能財務報表',
-                desc: '自動生成會計分錄與財務分析報告'
-              }
-            ].map((feature, index) => (
-              <div 
-                key={index}
-                className="flex items-start space-x-4 animate-slideIn"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
-                  <feature.icon className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800 mb-1">{feature.title}</h3>
-                  <p className="text-sm text-slate-600">{feature.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 右側 - 登入表單 */}
+      <div className="w-full max-w-md relative z-10">
+        {/* 登入表單 */}
         <div className="flex items-center justify-center">
           <div className="w-full max-w-md">
             <div className="card animate-fadeIn">
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white mb-4">
-                  <LogIn className="w-8 h-8" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white mb-4 overflow-hidden shadow-md">
+                  <Image 
+                    src="/LOGO_ICON.png" 
+                    alt="Logo" 
+                    width={64} 
+                    height={64} 
+                    className="object-contain"
+                  />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 font-display">歡迎回來</h2>
-                <p className="text-slate-600 mt-2">登入您的帳戶以繼續</p>
               </div>
 
               <form onSubmit={handleLogin} className="space-y-5">
@@ -236,13 +206,14 @@ export default function LoginPage() {
                   <input
                     type="text"
                     className="input"
-                    placeholder="a123456（小寫字母+6位數字）"
+                    placeholder="UUA01001（8位：3位部門代碼+2位公司代號+3位員工編號）"
                     value={loginName}
-                    onChange={(e) => setLoginName(e.target.value.toLowerCase())}
-                    pattern="[a-z][0-9]{6}"
+                    onChange={(e) => setLoginName(e.target.value.toUpperCase().slice(0, 8))}
+                    pattern="[A-Z]{3}[0-9]{2}[0-9]{3}"
+                    maxLength={8}
                     required
                   />
-                  <p className="text-xs text-slate-500 mt-1">格式：小寫字母 + 6位數字</p>
+                  <p className="text-xs text-slate-500 mt-1">格式：3位大寫字母（部門代碼）+ 2位數字（公司代號）+ 3位數字（員工編號）</p>
                 </div>
 
                 <div>
@@ -296,7 +267,7 @@ export default function LoginPage() {
             </div>
 
             <p className="text-center text-sm text-slate-500 mt-6">
-              © 2026 外匯會計系統. 保留所有權利.
+              © 2026 金優匯系統. 保留所有權利.
             </p>
           </div>
         </div>
