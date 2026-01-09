@@ -784,10 +784,13 @@ export default function CompaniesPage() {
     company.tax_id?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // 部門樹狀結構節點型別（在 Department 基礎上加入 children）
+  type DepartmentTreeNode = Department & { children?: DepartmentTreeNode[] }
+
   // 構建部門樹狀結構
-  const buildDeptTree = (depts: Department[]): Department[] => {
-    const deptMap = new Map(depts.map(d => [d.id, { ...d, children: [] as Department[] }]))
-    const roots: Department[] = []
+  const buildDeptTree = (depts: Department[]): DepartmentTreeNode[] => {
+    const deptMap = new Map(depts.map(d => [d.id, { ...d, children: [] as DepartmentTreeNode[] }]))
+    const roots: DepartmentTreeNode[] = []
 
     depts.forEach(dept => {
       const node = deptMap.get(dept.id)!
@@ -802,10 +805,13 @@ export default function CompaniesPage() {
     return roots
   }
 
+  // 職位樹狀結構節點型別（在 OrganizationPosition 基礎上加入 children）
+  type PositionTreeNode = OrganizationPosition & { children?: PositionTreeNode[] }
+
   // 構建職位樹狀結構
-  const buildPositionTree = (positions: OrganizationPosition[]): OrganizationPosition[] => {
-    const posMap = new Map(positions.map(p => [p.id, { ...p, children: [] as OrganizationPosition[] }]))
-    const roots: OrganizationPosition[] = []
+  const buildPositionTree = (positions: OrganizationPosition[]): PositionTreeNode[] => {
+    const posMap = new Map(positions.map(p => [p.id, { ...p, children: [] as PositionTreeNode[] }]))
+    const roots: PositionTreeNode[] = []
 
     positions.forEach(pos => {
       const node = posMap.get(pos.id)!
@@ -1184,7 +1190,9 @@ function CompanyModal({ editingCompany, formData, setFormData, onClose, onSave }
 
 // 部門管理模態框組件
 function DepartmentModal({ company, departments, editingDepartment, deptFormData, setDeptFormData, onClose, onSave, onEdit, onDelete, onNew }: any) {
-  const renderDeptTree = (depts: Department[], level = 0) => {
+  type DepartmentTreeNode = Department & { children?: DepartmentTreeNode[] }
+
+  const renderDeptTree = (depts: DepartmentTreeNode[], level = 0) => {
     if (!depts || depts.length === 0) return null
     
     return depts.map(dept => (
@@ -1222,9 +1230,9 @@ function DepartmentModal({ company, departments, editingDepartment, deptFormData
     ))
   }
 
-  const buildDeptTree = (depts: Department[]): Department[] => {
-    const deptMap = new Map(depts.map(d => [d.id, { ...d, children: [] as Department[] }]))
-    const roots: Department[] = []
+  const buildDeptTree = (depts: Department[]): DepartmentTreeNode[] => {
+    const deptMap = new Map(depts.map(d => [d.id, { ...d, children: [] as DepartmentTreeNode[] }]))
+    const roots: DepartmentTreeNode[] = []
 
     depts.forEach(dept => {
       const node = deptMap.get(dept.id)!
@@ -1399,7 +1407,9 @@ function DepartmentModal({ company, departments, editingDepartment, deptFormData
 
 // 組織圖表模態框組件
 function OrgChartModal({ company, departments, positions, employees, editingPosition, positionFormData, setPositionFormData, onClose, onSave, onEdit, onDelete, onNew }: any) {
-  const renderPositionTree = (positions: OrganizationPosition[], level = 0) => {
+  type PositionTreeNode = OrganizationPosition & { children?: PositionTreeNode[] }
+
+  const renderPositionTree = (positions: PositionTreeNode[], level = 0) => {
     if (!positions || positions.length === 0) return null
     
     return positions.map(pos => (
@@ -1436,9 +1446,9 @@ function OrgChartModal({ company, departments, positions, employees, editingPosi
     ))
   }
 
-  const buildPositionTree = (positions: OrganizationPosition[]): OrganizationPosition[] => {
-    const posMap = new Map(positions.map(p => [p.id, { ...p, children: [] as OrganizationPosition[] }]))
-    const roots: OrganizationPosition[] = []
+  const buildPositionTree = (positions: OrganizationPosition[]): PositionTreeNode[] => {
+    const posMap = new Map(positions.map(p => [p.id, { ...p, children: [] as PositionTreeNode[] }]))
+    const roots: PositionTreeNode[] = []
 
     positions.forEach(pos => {
       const node = posMap.get(pos.id)!
