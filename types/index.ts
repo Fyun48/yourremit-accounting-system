@@ -12,7 +12,7 @@ export interface UserProfile {
   full_name?: string
   email?: string
   role_id?: string
-  department?: string
+  department?: string | Department
   is_active: boolean
   last_login?: string
   created_at: string
