@@ -1338,14 +1338,14 @@ function DepartmentModal({ company, departments, editingDepartment, deptFormData
                 >
                   <option value="">無（頂層部門）</option>
                   {departments
-                    .filter(d => {
+                    .filter((d: Department) => {
                       // 過濾掉自己（編輯時）
                       if (editingDepartment && d.id === editingDepartment.id) return false
                       // 過濾掉層級已達3層的部門（不能再有下層）
                       if (d.level >= 3) return false
                       return true
                     })
-                    .map(dept => (
+                    .map((dept: Department) => (
                       <option key={dept.id} value={dept.id}>
                         {'  '.repeat(dept.level - 1)}{dept.name} ({dept.code}) - 層級 {dept.level}
                       </option>
@@ -1547,7 +1547,7 @@ function OrgChartModal({ company, departments, positions, employees, editingPosi
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">請選擇</option>
-                  {departments.map(dept => (
+                  {departments.map((dept: Department) => (
                     <option key={dept.id} value={dept.id}>
                       {dept.name} ({dept.code})
                     </option>
@@ -1562,7 +1562,7 @@ function OrgChartModal({ company, departments, positions, employees, editingPosi
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">請選擇</option>
-                  {employees.map(emp => (
+                  {employees.map((emp: ExtendedUserProfile) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.full_name} ({emp.email})
                     </option>
