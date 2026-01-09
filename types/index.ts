@@ -876,8 +876,8 @@ export interface ExtendedUserProfile extends UserProfile {
   position?: OrganizationPosition
 }
 
-// 操作記錄
-export interface AuditLog {
+// 操作記錄（系統審計日誌）
+export interface SystemAuditLog {
   id: string
   user_id: string
   user_name?: string
